@@ -177,16 +177,6 @@ COMMIT_AUTO_BRANCH=dev
 
 ---
 
-## Roadmap
-
-- [ ] GUI dashboard (Electron)
-- [ ] Multi-repo support
-- [ ] GitHub PR auto-creation on feature branch completion
-- [ ] Diff summarization via local LLM (Ollama)
-- [ ] VS Code extension
-
----
-
 ## Contributing
 
 PRs welcome. Please open an issue first for major changes.
