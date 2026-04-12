@@ -19,6 +19,8 @@ function autoReply(e) {
       Time: 5:00 PM UTC (8:00 PM - 9:30 PM EAT)<br>
       Video Call Link: <a href="https://meet.google.com/cnn-rowz-nnr">https://meet.google.com/cnn-rowz-nnr</a><br><br>
 
+      // I used this site to generate the add to calender link: https://www.labnol.org/calendar | Alternatives are AddEvent and Eventable
+
       <b>Add to your calendar:</b><br>
       • <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&dates=20260412T170000Z%2F20260412T183000Z&details=The%20Global%20Youth%20Coalition%20on%20Sustainable%20Urban%20Development%20is%20convening%20five%2060-minute%20Region%20specific%20webinars...&location=https%3A%2F%2Fmeet.google.com%2Fcnn-rowz-nnr&text=WUF13%20Regional%20Webinar%20Series%20-%20Africa">Add to Google Calendar</a><br>
       • <a href="https://outlook.live.com/calendar/0/action/compose?allday=false&enddt=2026-04-12T18%3A30%3A00Z&path=%2Fcalendar%2Faction%2Fcompose&rru=addevent&startdt=2026-04-12T17%3A00%3A00Z&subject=WUF13%20Regional%20Webinar%20Series%20-%20Africa">Add to Outlook</a><br><br>
