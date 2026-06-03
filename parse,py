@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""
+Parse DIB Kenya Daily Treasury Market Update HTML pages into a CSV file.
+
+Usage:
+    python3 parse_treasury_html.py file1.html file2.html ... > output.csv
+    python3 parse_treasury_html.py *.html > output.csv
+    cat *.html | python3 parse_treasury_html.py > output.csv   # pipe mode
+"""
+
+import re
+import csv
+import sys
+import os
+from datetime import datetime
+
+ORDINAL_RE = re.compile(r'(\d+)(st|nd|rd|th)', re.IGNORECASE)
+
+def clean_ordinal(text):
+    """Remove ordinal suffixes: 12th -> 12"""
+    return ORDINAL_RE.sub(r'\1', text)
+
+def parse_date(title):
+    """
+    Try to extract a parsed date from the link title.
+    E.g. 'Daily Treasury Market Update 12th February 2026' -> 2026-02-12
+    """
+    cleaned = clean_ordinal(title)
+    patterns = [
+        r'(\d{1,2})\s+(\w+)\s+(\d{4})',   # 12 February 2026
+        r'(\w+)\s+(\d{1,2})\w*,?\s+(\d{4})'  # February 12, 2026
+    ]
+    for pat in patterns:
+        m = re.search(pat, cleaned)
+        if m:
+            try:
+                groups = m.groups()
+                if groups[0].isdigit():
+                    date_str = f"{groups[0]} {groups[1]} {groups[2]}"
+                    return datetime.strptime(date_str, "%d %B %Y").strftime("%Y-%m-%d")
+                else:
+                    date_str = f"{groups[1]} {groups[0]} {groups[2]}"
+                    return datetime.strptime(date_str, "%d %B %Y").strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+    return ""
+
+def extract_links(html):
+    """Extract all anchor tags with href and inner text."""
+    return re.findall(r'<a\s[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html, re.IGNORECASE | re.DOTALL)
+
+def strip_tags(text):
+    """Remove any remaining HTML tags from text."""
+    return re.sub(r'<[^>]+>', '', text).strip()
+
+def deduplicate(rows):
+    seen = set()
+    out = []
+    for row in rows:
+        key = row['url']
+        if key not in seen:
+            seen.add(key)
+            out.append(row)
+    return out
+
+def process_html(html):
+    rows = []
+    links = extract_links(html)
+    for raw_url, raw_title in links:
+        title = strip_tags(raw_title).strip()
+        url = raw_url.strip()
+
+        # Skip non-PDF or non-treasury links (adjust filter as needed)
+        if not title or not url:
+            continue
+        if '.pdf' not in url.lower() and 'treasury' not in title.lower():
+            continue
+
+        date = parse_date(title)
+        year = date[:4] if date else ""
+        month = datetime.strptime(date, "%Y-%m-%d").strftime("%B") if date else ""
+
+        # Extract original (non-archive) URL if wrapped in web.archive.org
+        original_url = re.sub(r'^https?://web\.archive\.org/web/\d+/', '', url)
+
+        rows.append({
+            'title': title,
+            'date': date,
+            'year': year,
+            'month': month,
+            'url': url,
+            'original_url': original_url,
+        })
+    return rows
+
+def main():
+    all_rows = []
+
+    if sys.stdin.isatty() and not sys.argv[1:]:
+        print("Usage: python3 parse_treasury_html.py file1.html [file2.html ...] > output.csv", file=sys.stderr)
+        print("       cat *.html | python3 parse_treasury_html.py > output.csv", file=sys.stderr)
+        sys.exit(1)
+
+    if sys.argv[1:]:
+        for filepath in sys.argv[1:]:
+            if not os.path.exists(filepath):
+                print(f"Warning: file not found: {filepath}", file=sys.stderr)
+                continue
+            with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+                html = f.read()
+            rows = process_html(html)
+            all_rows.extend(rows)
+            print(f"  {filepath}: {len(rows)} entries found", file=sys.stderr)
+    else:
+        html = sys.stdin.read()
+        all_rows = process_html(html)
+
+    all_rows = deduplicate(all_rows)
+    # Sort by date descending (newest first), blanks last
+    all_rows.sort(key=lambda r: r['date'] or '0000-00-00', reverse=True)
+
+    writer = csv.DictWriter(sys.stdout, fieldnames=['title', 'date', 'year', 'month', 'url', 'original_url'])
+    writer.writeheader()
+    writer.writerows(all_rows)
+
+    print(f"\nDone: {len(all_rows)} unique entries written.", file=sys.stderr)
+
+if __name__ == '__main__':
+    main()
